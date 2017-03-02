@@ -1,0 +1,58 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          habridge
+# Required-Start:    $syslog $remote_fs $network
+# Required-Stop:     $syslog $remote_fs $network
+# Should-Start:      
+# Should-Stop:       
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Start the habridge.
+# Description:       Fast and smalle webserver with minimal memory footprint
+#                    developed with security in mind HTTP/1.1 compliant caching
+#                    proxy server.
+### END INIT INFO
+
+
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
+
+JARDIR="/opt/habridge"
+DATADIR="/usr/local/habridge"
+JAVA="/opt/java-azul/bin/java"
+
+
+case "$1" in
+	start)
+		if [ ! -e "$DATADIR/data" ] ; then
+			mkdir -p $DATADIR/data
+		fi
+		if [ ! -e "$JARDIR/data" ] ; then
+			mount / -o remount,rw
+			ln -s $DATADIR/data $JARDIR/data
+			mount / -o remount,ro
+		fi
+		if [ ! -e "/usr/bin/java" ] ; then
+			if [ -e "/opt/java-azul/bin/java" ] ; then
+				ln -s $DATADIR/data $JARDIR/data
+			fi
+		fi
+		cd $JARDIR
+		if [ -e "$DATADIR/habridge-log.txt" ] ; then
+			rm -rf $DATADIR/habridge-log.txt
+		fi
+		nohup $JAVA -jar -Dserver.port=8080 -Dconfig.file=data/habridge.config $JARDIR/ha-bridge.jar > $DATADIR/habridge-log.txt 2>&1 &
+		chmod 777 $DATADIR/habridge-log.txt
+		;;
+	stop)
+		;;
+	restart)
+		$0 stop
+		$0 start
+		;;
+	*)
+		echo "Usage: $SCRIPTNAME {start|stop|restart}" >&2
+		exit 1
+		;;
+esac
+
+exit 0
