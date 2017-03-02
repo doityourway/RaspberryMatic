@@ -1,0 +1,72 @@
+diff -Naur buildroot.orig/package/mpd/mpd.conf buildroot/package/mpd/mpd.conf
+--- buildroot.orig/package/mpd/mpd.conf	2017-03-01 11:24:14.379574288 +0100
++++ buildroot/package/mpd/mpd.conf	2017-03-01 11:29:04.419566686 +0100
+@@ -1,32 +1,30 @@
+-#
+ # Sample configuration file for mpd
+ # This is a minimal configuration, see the manpage for more options
+ #
+ 
+ # Directory where the music is stored
+-music_directory		"/var/lib/mpd/music"
++music_directory				"/media/nas/music"
+ 
+ # Directory where user-made playlists are stored (RW)
+-playlist_directory	"/var/lib/mpd/playlists"
++playlist_directory			"/usr/local/mpd/playlists"
+ 
+ # Database file (RW)
+-db_file			"/var/lib/mpd/database"
++db_file						"/usr/local/mpd/database"
+ 
+ # Log file (RW)
+-log_file		"/var/log/mpd.log"
++log_file					"/usr/local/mpd/mpd.log"
+ 
+ # Process ID file (RW)
+-pid_file		"/var/run/mpd.pid"
++pid_file					"/usr/local/mpd/mpd.pid"
+ 
+ # State file (RW)
+-state_file		"/var/lib/mpd/state"
++state_file					"/usr/local/mpd/state"
+ 
+-# User id to run the daemon as
+-#user			"nobody"
+ 
+-# TCP socket binding
+-bind_to_address		"any"
+-#bind_to_address	"localhost"
++bind_to_address				"/tmp/socket"
+ 
+-# Unix socket to listen on
+-bind_to_address		"/var/lib/mpd/socket"
++audio_output {
++        type            "alsa"
++        name            "ALSA device @raspi"
++        device          "hw:0,0"        # optional
++}
+diff -Naur buildroot.orig/package/mpd/mpd.mk buildroot/package/mpd/mpd.mk
+--- buildroot.orig/package/mpd/mpd.mk	2017-03-01 11:30:45.987564023 +0100
++++ buildroot/package/mpd/mpd.mk	2017-03-01 11:30:32.343564381 +0100
+@@ -255,6 +255,8 @@
+ 
+ define MPD_INSTALL_EXTRA_FILES
+ 	$(INSTALL) -m 0644 -D package/mpd/mpd.conf $(TARGET_DIR)/etc/mpd.conf
++	mkdir -p $(TARGET_DIR)/usr/local/mpd
++	mkdir -p $(TARGET_DIR)/media/nas/music
+ endef
+ 
+ MPD_POST_INSTALL_TARGET_HOOKS += MPD_INSTALL_EXTRA_FILES
+diff -Naur buildroot.orig/package/mpd/S95mpd buildroot/package/mpd/S95mpd
+--- buildroot.orig/package/mpd/S95mpd	2017-03-01 11:24:14.515574285 +0100
++++ buildroot/package/mpd/S95mpd	2017-03-01 11:29:06.547566630 +0100
+@@ -12,7 +12,7 @@
+ 
+ stop() {
+ 	printf "Stopping mpd: "
+-	start-stop-daemon --stop --quiet --pidfile /var/run/mpd.pid \
++	start-stop-daemon --stop --quiet --pidfile /usr/local/mpd/mpd.pid \
+ 		&& echo "OK" || echo "FAIL"
+ }
+ 
