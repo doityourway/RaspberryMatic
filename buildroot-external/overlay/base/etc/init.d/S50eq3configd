@@ -24,7 +24,7 @@ start() {
 	start-stop-daemon -S -q -p /var/run/eq3configd.pid --exec /bin/eq3configd &
 	echo "OK"
 	echo -n "Starting ssdpd: "
-	start-stop-daemon -S -q -p /var/run/ssdpd.pid --exec /bin/ssdpd &
+	start-stop-daemon -m -S -q -p /var/run/ssdpd.pid --exec /bin/ssdpd &
 	echo "OK"
 }
 stop() {

@@ -18,11 +18,19 @@ PATH=/sbin:/bin:/usr/sbin:/usr/bin
 
 JARDIR="/opt/habridge"
 DATADIR="/usr/local/habridge"
-JAVA="/opt/java-azul/bin/java"
+PIDFILE="/var/run/habridge.pid"
+LOGFILE="/var/log/ha-bridge.log"
 
+init() {
+	export JAVA_HOME=/opt/java/
+	export PATH=$PATH:$JAVA_HOME/bin
+}
 
 case "$1" in
 	start)
+		echo  -n "Stopping ssdpd for ha-bridge: "
+		start-stop-daemon -K -q -p /var/run/ssdpd.pid
+		echo "OK"
 		if [ ! -e "$DATADIR/data" ] ; then
 			mkdir -p $DATADIR/data
 		fi
@@ -31,19 +39,23 @@ case "$1" in
 			ln -s $DATADIR/data $JARDIR/data
 			mount / -o remount,ro
 		fi
-		if [ ! -e "/usr/bin/java" ] ; then
-			if [ -e "/opt/java-azul/bin/java" ] ; then
-				ln -s $DATADIR/data $JARDIR/data
-			fi
-		fi
 		cd $JARDIR
-		if [ -e "$DATADIR/habridge-log.txt" ] ; then
-			rm -rf $DATADIR/habridge-log.txt
+		if [ -e "$LOGFILE" ] ; then
+			rm -rf $LOGFILE
 		fi
-		nohup $JAVA -jar -Dserver.port=8080 -Dconfig.file=data/habridge.config $JARDIR/ha-bridge.jar > $DATADIR/habridge-log.txt 2>&1 &
-		chmod 777 $DATADIR/habridge-log.txt
+		init
+		echo -n "Starting HA-bridge: "
+		start-stop-daemon -b -S -q -m -p $PIDFILE --exec java -- -jar -Dserver.port=8080 -Dconfig.file=data/habridge.config $JARDIR/ha-bridge.jar > $LOGFILE 2>&1 &
+		echo "OK"
+		chmod 777 $LOGFILE
 		;;
 	stop)
+		echo -n "Stopping HA-bridge: "
+		start-stop-daemon -K -q -p $PIDFILE
+		if [ -e "$PIDFILE" ] ; then
+			rm -rf $PIDFILE
+		fi
+		echo "OK"
 		;;
 	restart)
 		$0 stop
