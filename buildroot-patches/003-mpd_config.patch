@@ -1,6 +1,6 @@
 diff -Naur buildroot.orig/package/mpd/mpd.conf buildroot/package/mpd/mpd.conf
---- buildroot.orig/package/mpd/mpd.conf	2017-03-01 11:24:14.379574288 +0100
-+++ buildroot/package/mpd/mpd.conf	2017-03-01 11:29:04.419566686 +0100
+--- buildroot.orig/package/mpd/mpd.conf	2017-03-03 12:35:35.746932480 +0100
++++ buildroot/package/mpd/mpd.conf	2017-03-03 12:57:55.862897352 +0100
 @@ -1,32 +1,30 @@
 -#
  # Sample configuration file for mpd
@@ -21,11 +21,11 @@ diff -Naur buildroot.orig/package/mpd/mpd.conf buildroot/package/mpd/mpd.conf
  
  # Log file (RW)
 -log_file		"/var/log/mpd.log"
-+log_file					"/usr/local/mpd/mpd.log"
++log_file					"/var/log/mpd.log"
  
  # Process ID file (RW)
 -pid_file		"/var/run/mpd.pid"
-+pid_file					"/usr/local/mpd/mpd.pid"
++pid_file					"/var/run/mpd.pid"
  
  # State file (RW)
 -state_file		"/var/lib/mpd/state"
@@ -37,7 +37,7 @@ diff -Naur buildroot.orig/package/mpd/mpd.conf buildroot/package/mpd/mpd.conf
 -# TCP socket binding
 -bind_to_address		"any"
 -#bind_to_address	"localhost"
-+bind_to_address				"/tmp/socket"
++bind_to_address				"any"
  
 -# Unix socket to listen on
 -bind_to_address		"/var/lib/mpd/socket"
@@ -46,27 +46,34 @@ diff -Naur buildroot.orig/package/mpd/mpd.conf buildroot/package/mpd/mpd.conf
 +        name            "ALSA device @raspi"
 +        device          "hw:0,0"        # optional
 +}
-diff -Naur buildroot.orig/package/mpd/mpd.mk buildroot/package/mpd/mpd.mk
---- buildroot.orig/package/mpd/mpd.mk	2017-03-01 11:30:45.987564023 +0100
-+++ buildroot/package/mpd/mpd.mk	2017-03-01 11:30:32.343564381 +0100
-@@ -255,6 +255,8 @@
- 
- define MPD_INSTALL_EXTRA_FILES
- 	$(INSTALL) -m 0644 -D package/mpd/mpd.conf $(TARGET_DIR)/etc/mpd.conf
-+	mkdir -p $(TARGET_DIR)/usr/local/mpd
-+	mkdir -p $(TARGET_DIR)/media/nas/music
- endef
- 
- MPD_POST_INSTALL_TARGET_HOOKS += MPD_INSTALL_EXTRA_FILES
 diff -Naur buildroot.orig/package/mpd/S95mpd buildroot/package/mpd/S95mpd
---- buildroot.orig/package/mpd/S95mpd	2017-03-01 11:24:14.515574285 +0100
-+++ buildroot/package/mpd/S95mpd	2017-03-01 11:29:06.547566630 +0100
-@@ -12,7 +12,7 @@
+--- buildroot.orig/package/mpd/S95mpd	2017-03-03 12:35:35.886932476 +0100
++++ buildroot/package/mpd/S95mpd	2017-03-03 13:02:45.314889764 +0100
+@@ -4,16 +4,23 @@
+ test -f /usr/bin/mpd || exit 0
+ test -f /etc/mpd.conf || exit 0
+ 
++PIDFILE="/var/run/mpd.pid"
++MPDDIR="/usr/local/mpd"
++
+ start() {
++	echo -n "Loading sound driver for mpd: "
++	modprobe snd-bcm2835
++	echo "OK"
+ 	printf "Starting mpd: "
+-	start-stop-daemon --start --quiet --background --exec /usr/bin/mpd \
+-		&& echo "OK" || echo "FAIL"
++	if [ ! -e "$MPDDIR" ] ; then
++		mkdir -p $MPDDIR/playlists
++	fi
++	start-stop-daemon --start --quiet --background --exec /usr/bin/mpd && echo "OK" || echo "FAIL"
+ }
  
  stop() {
  	printf "Stopping mpd: "
 -	start-stop-daemon --stop --quiet --pidfile /var/run/mpd.pid \
-+	start-stop-daemon --stop --quiet --pidfile /usr/local/mpd/mpd.pid \
- 		&& echo "OK" || echo "FAIL"
+-		&& echo "OK" || echo "FAIL"
++	start-stop-daemon --stop --quiet --pidfile $PIDFILE && echo "OK" || echo "FAIL"
  }
  
+ case "$1" in
